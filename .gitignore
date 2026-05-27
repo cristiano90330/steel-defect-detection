@@ -1,0 +1,27 @@
+# Training runs (weights, logs, plots)
+runs/
+
+# Split datasets (large)
+data/NEU-DET/split_train/
+data/NEU-DET/split_val/
+data/NEU-DET/tta_results/
+
+# Personal files
+odeseyChat.txt
+resume/
+GoalOfWork.txt
+行动指南.md
+面试技术文档.md
+
+# Playwright MCP config
+.playwright-mcp/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Upload cache
+uploads/*
+!uploads/.gitkeep

@@ -1,0 +1,5 @@
+path: D:/ultralytics/steel-defect-detection/data/NEU-DET
+train: D:\ultralytics\steel-defect-detection\data\NEU-DET\split_train/images
+val: D:\ultralytics\steel-defect-detection\data\NEU-DET\split_val/images
+nc: 6
+names: ['crazing', 'inclusion', 'patches', 'pitted_surface', 'rolled-in_scale', 'scratches']

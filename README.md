@@ -14,7 +14,7 @@
   - rolled-in_scale（氧化皮）
   - scratches（划痕）
 - 样本数量：共 1800 张，每类 300 张
-- 划分方式：训练集 / 验证集 = 8:2
+- 划分方式：训练集 / 验证集 = 8:2（每类均匀分层抽样）
 
 ## 3. 模型方案
 ### 3.1 模型选型
@@ -23,54 +23,52 @@
 
 ### 3.2 训练策略
 - 输入尺寸：`imgsz=640`
-- 训练轮次：`epochs=50`
-- 基础增强：左右翻转、轻度旋转、轻度亮度/饱和度变化
-- 训练目标：在保证整体 mAP 稳定的前提下，尽量提升细纹理缺陷的泛化能力
+- 训练轮次：`epochs=100`
+- 学习率：余弦退火调度，lr0=0.01
+- 多尺度训练：`multi_scale=0.5`
+- 增强策略：极轻度翻转/旋转/缩放，低比例马赛克，关闭 mixup/cutmix
+- 早停：`patience=20`
+- 训练目标：在保证整体 mAP 稳定的前提下，提升细纹理缺陷（裂纹、氧化皮）的泛化能力
 
 ## 4. 实验结果
-### 4.1 最终正式模型精度（steel_defect_model7 best.pt）
+
+### 4.1 最新模型精度（steel_improved_v14）
+
 | 缺陷类别 | AP@0.5 |
 |--------|--------|
-| crazing | 0.6105 |
-| inclusion | 0.7350 |
-| patches | 0.9584 |
-| pitted_surface | 0.9950 |
-| rolled-in_scale | 0.5319 |
-| scratches | 0.8223 |
-**整体 mAP@0.5：0.7756**
+| crazing | 0.6949 |
+| inclusion | 0.9530 |
+| patches | 0.9840 |
+| pitted_surface | 0.9710 |
+| rolled-in_scale | 0.7089 |
+| scratches | 0.9441 |
+| **整体 mAP@0.5** | **0.8760** |
 
-### 4.2 对比实验
-为了探索数据增强对缺陷检测的影响，我在正式模型基础上做了两组微调对比：
+### 4.2 版本演进与关键发现
 
-#### 对比1：较强数据增强（负优化组）
-- 增强：旋转 15°、高亮度变化、mosaic=1.0、mixup=0.1
-- 结果：**细纹理缺陷（裂纹、划痕）AP 明显下降**
-- 结论：过度增强会破坏细长缺陷结构，不适合裂纹类目标
+| 版本 | 模型 | mAP@0.5 | 关键贡献 |
+|------|------|---------|---------|
+| v1.0 | steel_defect_model7 | 0.7756 | 首版交付模型 + Flask Web 部署 |
+| v1.5 | 强增强实验 | 更低 | 发现 mosaic+mixup 对细长缺陷有灾难性破坏 |
+| v2.0 | steel_final_version | ~0.78 | 验证温和增强 + imgsz=640 方向正确 |
+| **v3.0** | **steel_improved_v14** | **0.8760** | 80/20 数据重划分 + 最优训练配置 |
 
-#### 对比2：温和增强（稳定版）
-- 增强：旋转 5°、轻度亮度、mosaic=0.5、关闭 mixup
-- 结果：整体精度小幅下降，但模型更稳定，无剧烈崩盘
-- 结论：温和增强更适合工业缺陷，但对低 AP 类别提升有限
+> 详细版本记录见 [CHANGELOG.md](CHANGELOG.md)
 
-> 综合对比后，**第一版最优模型（model7）综合性能最强**，作为项目最终交付版本。
+**核心发现**：
+- 过度数据增强（mosaic=1.0, mixup=0.1, degrees=15）会破坏裂纹、划痕等细长缺陷结构
+- 极轻增强（degrees=3, mosaic=0.3）+ 合理数据划分（8:2）是工业缺陷检测的最佳实践
+- 提高 cls loss 权重 + 余弦退火对难分类类别有明显帮助
 
 ## 5. 效果展示
-### 5.1 精度对比图
-![ap_comparison.png](ap_comparison.png)
-> 正式模型与对比1模型
-![final_ap_compare.png](final_ap_compare.png)
-> 正式模型与对比2模型
-### 5.2 训练曲线
-![训练曲线](results.png)
-> 包含：box_loss、cls_loss、mAP@0.5 等曲线
-![results.png](../runs/detect/steel_defect_model7/results.png)
-> 
-### 5.3 验证结果混淆矩阵 / PR 曲线
-![confusion_matrix.png](../runs/detect/steel_defect_model7/confusion_matrix.png)
-![BoxPR_curve.png](../runs/detect/steel_defect_model7/BoxPR_curve.png)
+### 5.1 训练曲线
+训练曲线、混淆矩阵、PR 曲线等位于相应 run 目录下：
+`runs/detect/steel_improved_v14/`
 
-### 5.4 实际检测效果示例
-![patches_5.jpg](../runs/detect/predict/patches_5.jpg)
+### 5.2 Web 部署界面
+
+![系统首页](web_index.png)
+![检测结果页面](web_result.png)
 
 ## 6. 项目部署
 ### 6.1 部署方式
@@ -78,34 +76,48 @@
 - 前端展示：Flask Web 网页部署
 - 功能：上传图片 → 自动检测缺陷 → 输出类别与置信度 → 可视化标注框
 
-### 6.2 部署界面截图
-
-![系统首页](web_index.png)
-![检测结果页面](web_result.png)
-
+### 6.2 启动方式
+```bash
+pip install -r requirements.txt
+python app.py
+```
+浏览器打开 `http://localhost:5000`，上传图片即可检测。
 
 ## 7. 项目结构
 ```
 steel-defect-detection/
 ├── README.md               # 项目说明
-├── train_stell.py          # 训练代码
-├── val_ap.py               # 各类别AP计算脚本
-├── app.py                  # Flask部署代码
+├── CHANGELOG.md            # 版本更新日志
+├── train_improved.py       # 训练脚本（当前最新）
+├── calculate_class_ap.py   # 各类别 AP 评估脚本
+├── tta_inference.py        # TTA（测试时增强）推理脚本
+├── app.py                  # Flask Web 部署代码
 ├── requirements.txt        # 环境依赖
-├── data/                   # NEU-DET数据集
-├── runs/                   # 训练日志、权重、曲线、图表
+├── data/                   # NEU-DET 数据集
+├── runs/                   # 训练日志、权重、曲线
 └── uploads/                # 网页上传图片缓存
 ```
 
 ## 8. 后续优化方向
-1. 对裂纹、氧化皮等低 AP 类别进行**样本加权 / 补充难样本**
-2. 引入 Focal Loss 聚焦难分类缺陷
-3. 模型导出 ONNX / TensorRT 实现工业端侧部署
-4. 接入摄像头实现**实时流水线检测**
+1. 对裂纹、氧化皮等类别补充难样本或使用样本加权
+2. 引入 Focal Loss 进一步聚焦难分类缺陷
+3. ~~模型导出 ONNX / TensorRT 实现工业端侧部署~~ ✅ 已完成
+4. 接入摄像头实现实时流水线检测
 5. 增加缺陷统计、报表导出功能
+
+### 8.1 部署加速（已完成 2025-05-16）
+
+| 后端 | 推理速度 | 加速比 | mAP@0.5 |
+|------|---------|--------|---------|
+| PyTorch FP32 | 6.4 ms | 1.0x | 0.7337 |
+| ONNX RT CUDA | 6.2 ms | 1.0x | - |
+| **TensorRT FP16** | **2.0 ms** | **3.2x** | **0.7256** (-1.1%) |
+
+> 部署文件：`runs/detect/steel_improved_v14/weights/best.engine` (23.2 MB)
 
 ## 9. 项目亮点
 - 完整工业视觉全流程：数据 → 训练 → 评估 → 部署
+- ONNX 导出 + TensorRT 加速：推理速度 3.2x 提升，精度损失仅 1.1%
 - 有量化指标、对比实验、工程分析，而非单纯跑通模型
 - 针对工业缺陷特点设计增强策略，具备实际落地意识
 - 可演示、可复现、可扩展
