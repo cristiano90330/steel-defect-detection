@@ -1,5 +1,11 @@
+# Model weights (large files)
+*.pt
+
 # Training runs (weights, logs, plots)
 runs/
+
+# Superpowers plugin config
+.superpowers/
 
 # Split datasets (large)
 data/NEU-DET/split_train/

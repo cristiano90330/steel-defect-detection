@@ -132,49 +132,49 @@ if __name__ == '__main__':
         data=DATA_YAML,
         epochs=100,
         imgsz=640,
-        batch=8,
+        batch=8,    #每批次8张
         device=0,
         workers=0,
         name=run_name,
         amp=False,
 
-        fliplr=0.5,
-        flipud=0.2,
-        degrees=3,
-        translate=0.05,
-        scale=0.3,
-        hsv_h=0.01,
-        hsv_s=0.3,
-        hsv_v=0.2,
+        fliplr=0.5,     #水平翻转
+        flipud=0.2,     #垂直翻转
+        degrees=3,      #随机旋转±3度
+        translate=0.05,     #平移±5%
+        scale=0.3,      #缩放±30%
+        hsv_h=0.01, #色相
+        hsv_s=0.3, #饱和度
+        hsv_v=0.2, #明度
 
-        mosaic=0.3,
-        mixup=0.0,
-        cutmix=0.0,
-        erasing=0.0,
-        auto_augment=None,
-        shear=0.0,
-        perspective=0.0,
+        mosaic=0.3,     #马赛克增强
+        mixup=0.0,  #混合增强
+        cutmix=0.0, #裁剪混合
+        erasing=0.0,    #随机擦除
+        auto_augment=None,  #不使用自动增强策略
+        shear=0.0,      #无剪切变换
+        perspective=0.0,        #无透视变换
 
-        cls=1.0,
-        box=7.5,
-        dfl=1.5,
+        cls=1.0,        #分类损失权重
+        box=7.5,        #边界框损失权重
+        dfl=1.5,        #分布焦点损失权重
 
-        lr0=0.01,
-        lrf=0.01,
-        momentum=0.937,
-        weight_decay=0.0005,
-        warmup_epochs=3,
-        cos_lr=True,
-        patience=20,
+        lr0=0.01,   #初始学习率
+        lrf=0.01,   #最终学习率 = 0.01×0.01 = 0.0001
+        momentum=0.937, #SGD动量
+        weight_decay=0.0005,    #L2正则化强度
+        warmup_epochs=3,    #前3轮学习率预热
+        cos_lr=True,    #余弦退火学习率调度
+        patience=20,    #20轮无提升则早停
 
-        multi_scale=0.5,
-        close_mosaic=15,
+        multi_scale=0.5,    #随机多尺度训练
+        close_mosaic=15,    #最后15轮关闭马赛克（稳定训练）
 
-        pretrained=True,
+        pretrained=True,    #COCO预训练权重
         save=True,
         plots=True,
 
-        resume=bool(ckpt_path),
+        resume=bool(ckpt_path),     #检查点则恢复训练
     )
 
     print("\n训练完成！运行 calculate_class_ap.py 评估各类别精度。")
